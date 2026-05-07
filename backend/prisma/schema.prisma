@@ -1,0 +1,81 @@
+// Prisma schema — ft_transcendence
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int          @id @default(autoincrement())
+  email       String       @unique
+  username    String       @unique
+  wins        Int          @default(0)
+  displayName String?
+  avatarUrl   String?
+  birthDate     DateTime?   
+  country       String?     
+  gender        String?      
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  matchesAsP1 Match[]      @relation("Player1")
+  matchesAsP2 Match[]      @relation("Player2")
+  friendsFrom Friendship[] @relation("FriendFrom")
+  friendsTo   Friendship[] @relation("FriendTo")
+  messages    Message[]
+  oauthId     String?  @unique
+  oauthProvider String?
+  password    String?  // opcional porque con OAuth no hay password
+}
+
+model Match {
+  id          Int      @id @default(autoincrement())
+  player1     User     @relation("Player1", fields: [player1Id], references: [id])
+  player1Id   Int
+  player2     User?    @relation("Player2", fields: [player2Id], references: [id])
+  player2Id   Int?     // opcional porque puede jugar vs IA
+  isVsAI      Boolean  @default(false)
+  winner      String?  // "player1", "player2", "draw"
+  board       String   @default("_________") // estado del tablero
+  status      String   @default("waiting")   // "waiting", "playing", "finished"
+  customRules Json?    // para game customization
+  score1      Int      @default(0)
+  score2      Int      @default(0)
+  playedAt    DateTime @default(now())
+  finishedAt  DateTime?
+}
+
+model Friendship {
+  id         Int      @id @default(autoincrement())
+  fromUser   User     @relation("FriendFrom", fields: [fromUserId], references: [id])
+  fromUserId Int
+  toUser     User     @relation("FriendTo", fields: [toUserId], references: [id])
+  toUserId   Int
+  accepted   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@unique([fromUserId, toUserId])
+}
+
+model Channel {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  isPrivate Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  messages  Message[]
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  content   String
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  Int
+  channel   Channel  @relation(fields: [channelId], references: [id])
+  channelId Int
+  sentAt    DateTime @default(now())
+}
